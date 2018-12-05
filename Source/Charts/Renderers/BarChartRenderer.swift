@@ -302,7 +302,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
             }
 
             return ($0.element, isSingleColor ? nil : dataSet.color(atIndex: $0.offset).cgColor)
-            }.flatMap { $0 }
+            }.compactMap { $0 }
 
         let fullFrames: [CGFloat: CGRect] = buffer.rects.reduce([:]) {
             var dict = $0
@@ -635,7 +635,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
     /// Draws a value at the specified x and y position.
     @objc open func drawValue(context: CGContext, value: String, xPos: CGFloat, yPos: CGFloat, font: NSUIFont, align: NSTextAlignment, color: NSUIColor)
     {
-        ChartUtils.drawText(context: context, text: value, point: CGPoint(x: xPos, y: yPos), align: align, attributes: [NSAttributedStringKey.font: font, NSAttributedStringKey.foregroundColor: color])
+        ChartUtils.drawText(context: context, text: value, point: CGPoint(x: xPos, y: yPos), align: align, attributes: [.font: font, .foregroundColor: color])
     }
     
     open override func drawExtras(context: CGContext)
