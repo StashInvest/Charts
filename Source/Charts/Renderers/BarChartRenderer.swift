@@ -406,7 +406,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
         {
             context.setFillColor(dataSet.color(atIndex: 0).cgColor)
         }
-        
+
         let visibleRectsWithColors: [(CGRect, CGColor?)] = buffer.rects.enumerated().compactMap {
             if (!viewPortHandler.isInBoundsLeft($0.element.origin.x + $0.element.size.width) || !viewPortHandler.isInBoundsRight($0.element.origin.x)) {
                 return nil

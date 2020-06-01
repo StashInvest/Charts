@@ -9,6 +9,7 @@ Pod::Spec.new do |s|
   s.tvos.deployment_target = "9.0"
   s.osx.deployment_target = "10.11"
   s.source = { :git => "https://github.com/danielgindi/Charts.git", :tag => "v#{s.version}" }
+  s.swift_version = '4.0'
   s.default_subspec = "Core"
   s.swift_version = '5.0'
   s.cocoapods_version = '>= 1.5.0'
