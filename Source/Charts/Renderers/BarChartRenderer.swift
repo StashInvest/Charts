@@ -407,39 +407,59 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
             context.setFillColor(dataSet.color(atIndex: 0).cgColor)
         }
 
+        let visibleRectsWithColors: [(CGRect, CGColor?)] = buffer.rects.enumerated().compactMap {
+            if (!viewPortHandler.isInBoundsLeft($0.element.origin.x + $0.element.size.width) || !viewPortHandler.isInBoundsRight($0.element.origin.x)) {
+                return nil
+            }
+
+            return ($0.element, isSingleColor ? nil : dataSet.color(atIndex: $0.offset).cgColor)
+        }
+
+        let fullFrames: [CGFloat: CGRect] = buffer.rects.reduce([:]) {
+            var dict = $0
+
+            let existingFrame = $0[$1.origin.x]
+            var combinedFrame: CGRect = existingFrame == nil ? $1 : existingFrame!.union($1)
+            combinedFrame.size.height = max(combinedFrame.width * 2, combinedFrame.height)
+            dict[$1.origin.x] = combinedFrame
+
+            return dict
+        }
+
+        let fullPaths: [CGFloat: UIBezierPath] = fullFrames.mapValues {
+            let roundedCorners: UIRectCorner = dataSet.roundTop ? [.topLeft, .topRight] : []
+            let radii = CGSize(width: $0.width / 2, height: $0.width / 2)
+
+            return UIBezierPath(roundedRect: $0, byRoundingCorners: roundedCorners , cornerRadii: radii)
+        }
+
+        visibleRectsWithColors.forEach {
+            context.saveGState()
+            defer { context.restoreGState() }
+
+            let fullPath = fullPaths[$0.0.origin.x]
+            if let customColor = $0.1 {
+                context.setFillColor(customColor)
+            }
+
+            let pathForRect = UIBezierPath(rect: $0.0)
+            fullPath?.addClip()
+            pathForRect.fill()
+        }
+
+        if drawBorder {
+            fullPaths.values.forEach {
+                context.setStrokeColor(borderColor.cgColor)
+                context.setLineWidth(borderWidth)
+                $0.stroke()
+            }
+        }
+
         // In case the chart is stacked, we need to accomodate individual bars within accessibilityOrdereredElements
         let isStacked = dataSet.isStacked
         let stackSize = isStacked ? dataSet.stackSize : 1
 
-        for j in stride(from: 0, to: buffer.rects.count, by: 1)
-        {
-            let barRect = buffer.rects[j]
-
-            if (!viewPortHandler.isInBoundsLeft(barRect.origin.x + barRect.size.width))
-            {
-                continue
-            }
-            
-            if (!viewPortHandler.isInBoundsRight(barRect.origin.x))
-            {
-                break
-            }
-            
-            if !isSingleColor
-            {
-                // Set the color for the currently drawn value. If the index is out of bounds, reuse colors.
-                context.setFillColor(dataSet.color(atIndex: j).cgColor)
-            }
-            
-            context.fill(barRect)
-            
-            if drawBorder
-            {
-                context.setStrokeColor(borderColor.cgColor)
-                context.setLineWidth(borderWidth)
-                context.stroke(barRect)
-            }
-
+        fullPaths.enumerated().forEach { j, _ in
             // Create and append the corresponding accessibility element to accessibilityOrderedElements
             if let chart = dataProvider as? BarChartView
             {
@@ -449,7 +469,7 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
                                                       dataSetIndex: index,
                                                       stackSize: stackSize)
                 { (element) in
-                    element.accessibilityFrame = barRect
+                    element.accessibilityFrame = buffer.rects[j]
                 }
 
                 accessibilityOrderedElements[j/stackSize].append(element)
